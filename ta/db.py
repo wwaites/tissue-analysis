@@ -1,12 +1,16 @@
 import sqlite3
 import logging
+import re
+from os import path
 log = logging.getLogger("db")
 
 tables = {
     "meshfiles": """
         CREATE TABLE meshfiles (
             id INTEGER PRIMARY KEY,
+            file VARCHAR,
             name VARCHAR,
+            time VARCHAR,
             size INTEGER,
             entropy DOUBLE
         );
@@ -37,10 +41,16 @@ class Database(object):
 
     def meshfile(self, filename):
         cur = self.conn.cursor()
-        cur.execute("SELECT id FROM meshfiles WHERE name=?;", (filename,))
+        cur.execute("SELECT id FROM meshfiles WHERE file=?;", (filename,))
         row = cur.fetchone()
         if row is None:
-            cur.execute("INSERT INTO meshfiles(name) VALUES(?);", (filename,))
-            cur.execute("SELECT id FROM meshfiles WHERE name=?;", (filename,))
+            basename = path.basename(filename)
+            m = re.match(r"^.*[^0-9]([0-9]*)\.vtu$", basename)
+            time, = m.groups()
+            cur.execute(
+                "INSERT INTO meshfiles(file, name, time) VALUES(?, ?, ?);",
+                (filename, basename, int(time))
+            )
+            cur.execute("SELECT id FROM meshfiles WHERE file=?;", (filename,))
             row = cur.fetchone()
         return row[0]
