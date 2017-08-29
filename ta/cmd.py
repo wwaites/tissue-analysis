@@ -4,9 +4,12 @@ import os
 from os import path
 import logging
 import argparse
+import sys, traceback
 
 from mesh import meshstats
 from clusters import clusterstats
+
+log = logging.getLogger("tstats")
 
 def main():
     parser = argparse.ArgumentParser(prog='clusters')
@@ -26,9 +29,16 @@ def main():
         for fn in fs:
             if fn.endswith(".vtu"):
                 filename = path.join(d, fn)
-                m = Mesh(filename)
-                if args.meshstats:
-                    meshstats(db, m)
-                if args.clusterstats:
-                    clusterstats(db, m)
-                db.conn.commit()
+                try:
+                    m = Mesh(filename)
+                    if args.meshstats:
+                        meshstats(db, m)
+                    if args.clusterstats:
+                        clusterstats(db, m)
+                    db.conn.commit()
+                except Exception:
+                    exc_type, exc_value, exc_traceback = sys.exc_info()
+                    log.error("error processing %s:")
+                    for s in traceback.format_exception(exc_type, exc_value, exc_traceback):
+                        log.error(s)
+                    db.conn.rollback()
