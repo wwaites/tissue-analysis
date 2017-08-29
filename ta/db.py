@@ -45,11 +45,9 @@ class Database(object):
         row = cur.fetchone()
         if row is None:
             basename = path.basename(filename)
-            m = re.match(r"^.*[^0-9]([0-9]*)\.vtu$", basename)
-            time, = m.groups()
             cur.execute(
-                "INSERT INTO meshfiles(file, name, time) VALUES(?, ?, ?);",
-                (filename, basename, int(time))
+                "INSERT INTO meshfiles(file, name) VALUES(?, ?);",
+                (filename, basename)
             )
             cur.execute("SELECT id FROM meshfiles WHERE file=?;", (filename,))
             row = cur.fetchone()

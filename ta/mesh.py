@@ -3,7 +3,7 @@ from scipy.sparse import dok_matrix
 import numpy as np
 from sys import argv, stdout
 import logging
-
+import re
 log = logging.getLogger("mesh")
 
 class TissueGridException(Exception):
@@ -43,6 +43,12 @@ class Mesh(object):
         return (len(self), len(self))
     def __len__(self):
         return self.ug.GetNumberOfCells()
+
+    @property
+    def timestamp(self):
+        m = re.match(r"^.*[^0-9]([0-9]*)\.vtu$", self.filename)
+        time, = m.groups()
+        return time
 
     @memoize
     def types(self):
@@ -134,6 +140,6 @@ def meshstats(db, m):
     cur = db.conn.cursor()
     cur.execute("""
     UPDATE meshfiles
-    SET size=?, entropy=?
+    SET time=?, size=?, entropy=?
     WHERE id=?
-    """, (len(m), m.entropy, mid))
+    """, (m.timestamp, len(m), m.entropy, mid))
