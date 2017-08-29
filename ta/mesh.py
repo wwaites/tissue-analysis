@@ -1,8 +1,10 @@
 from vtk import *
 from scipy.sparse import dok_matrix
-from math import log
 import numpy as np
 from sys import argv, stdout
+import logging
+
+log = logging.getLogger("mesh")
 
 class TissueGridException(Exception):
     "Something has gone wrong"
@@ -27,10 +29,14 @@ def memoize(f):
 
 class Mesh(object):
     def __init__(self, file_name):
+        self.filename = file_name
         reader = vtkXMLUnstructuredGridReader()
         reader.SetFileName(file_name)
         reader.Update()
         self.ug = reader.GetOutput()
+
+    def __str__(self):
+        return "Mesh(%s)" % repr(self.filename)
 
     @memoize
     def shape(self):
@@ -110,6 +116,7 @@ class Mesh(object):
 
     @memoize
     def entropy(self):
+        from math import log 
         demo = self.demographics
         nstats = self.neighbourStats
         dist = []
@@ -121,54 +128,12 @@ class Mesh(object):
     def neighbours(self, i):
         return [j for (_, j) in self.adjacencies[i, :].keys()]
 
-    def _cluster(self, i, seen = None, ctype = None):
-        if seen is None:
-            seen = set()
-        if ctype is None:
-            ctype = self.types[i]
-        if i in seen:
-            return seen
-        if self.types[i] == ctype:
-            seen.add(i)
-            for n in self.neighbours(i):
-                new = self._cluster(n, seen, ctype)
-                seen = seen.union(new)
-        return seen
-
-    @memoize
-    def clusters(self):
-        clusters = []
-        seen = set()
-        for i in range(len(self)):
-            if i in seen: continue
-            members = self._cluster(i)
-            seen = seen.union(members)
-            clusters.append(Cluster(self.types[i], members))
-        return clusters
-
-    @memoize
-    def clusterCounts(self):
-        cc = {}
-        for c in self.clusters:
-            cc.setdefault(c.ctype, []).append(len(c.members))
-        return cc
-
-class Cluster(object):
-    def __init__(self, ctype, members):
-        self.ctype = ctype
-        self.members = members
-    def __str__(self):
-        return "Cluster(%s, %s)" % (self.ctype, self.members)
-    def __len__(self):
-        return len(self.members)
-
-for f in argv[1:]:
-    m = Mesh(f)
-    stdout.write("%s\t%s" % (f, m.entropy))
-    cc = m.clusterCounts
-    ctypes = cc.keys()
-    ctypes.sort()
-    for t in ctypes:
-        stdout.write("\t%f\t%f" % (np.mean(cc[t]), np.std(cc[t])))
-    print
-
+def meshstats(db, m):
+    log.info("calculating mesh stats %s", m)
+    mid = db.meshfile(m.filename)
+    cur = db.conn.cursor()
+    cur.execute("""
+    UPDATE meshfiles
+    SET size=?, entropy=?
+    WHERE id=?
+    """, (len(m), m.entropy, mid))

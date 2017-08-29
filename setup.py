@@ -7,7 +7,7 @@ setup(
     install_requires=['scipy'],
     entry_points={
         'console_scripts': [
-            'clusters = ta.clusters:main'
+            'tstats = ta.cmd:main'
             ]
         }
     )

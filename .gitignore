@@ -1,0 +1,11 @@
+*.pyc
+*~
+*.bak
+*.db
+*.egg-info
+bin
+include
+lib
+local
+share
+pip-selfcheck.json
