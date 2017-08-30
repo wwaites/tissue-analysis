@@ -1,0 +1,2 @@
+include data/*.vtu
+include scripts/run_analysis
