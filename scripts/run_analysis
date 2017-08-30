@@ -1,0 +1,35 @@
+#!/bin/sh
+
+## This script is designed to be run with GNU parallel on the
+## data generated from Chaste, to create SQLite databases with
+## summary statistics.
+
+## Preparation:
+#
+# cd /disk/adeon/tissue/three-cells
+# find . -name results_from_time_0 -type d > datasets.txt
+#
+## Running this script:
+#
+# < /disk/adeon/tissue/three-cells/datasets.txt \
+#     parallel /home/ww/shared/tissue-analysis/scripts/run_analysis \
+#         2>&1 | tee analysis.log 
+#
+##
+
+## directory to analyse comes in as $1 relative to DATA
+DATA=/disk/adeon/tissue/three-cells
+SET=$1
+
+## data directory is read only, so we create our database in WORK
+WORK=/disk/adeon/home/ww/shared/three-cells
+WORKSET=`echo ${WORK}/${SET} | sed 's@/\./@/@'`
+mkdir -p ${WORKSET}
+
+DB=${WORKSET}/../../summary.db
+
+TA="`dirname $0`/../bin/tstats"
+
+cd ${DATA}
+${TA} -d ${DB} ${SET} --meshstats --clusterstats
+
