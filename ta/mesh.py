@@ -84,6 +84,19 @@ class Mesh(object):
         return adj
 
     @memoize
+    def polygons(self):
+        def _poly():
+            for i in range(len(self)):
+                points = vtkIdList()
+                self.ug.GetCellPoints(i, points)
+                gon = []
+                for p in range(points.GetNumberOfIds()):
+                    (x, y, _) = self.ug.GetPoint(points.GetId(p))
+                    gon.append((x, y))
+                yield gon
+        return list(_poly())
+
+    @memoize
     def demographics(self):
         typemap = {}
         for t in self.types:

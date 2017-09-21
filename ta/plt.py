@@ -1,6 +1,9 @@
 import argparse
 from glob import glob
 from os import path, system
+from sys import exit
+from mesh import Mesh
+from PIL import Image, ImageDraw
 import re
 
 def main():
@@ -35,3 +38,56 @@ plot \\
         fp.write(", \\\n".join(plotline(pop) for pop in pops))
         fp.write("\n")
     system("gnuplot %s" % plot)
+
+def mesh():
+    parser = argparse.ArgumentParser(prog='pmesh')
+    parser.add_argument('-g', dest='geometry', default="640x480", help='image geometry')
+    parser.add_argument('input', help='input VTK file')
+    parser.add_argument('output', help='output file')
+
+    args = parser.parse_args()
+    gre = re.match(r"^([0-9]+)x([0-9]+)$", args.geometry)
+    if gre is None:
+        print("invalid geometry: %s" % args.geometry)
+        exit(255)
+
+    try:
+        _, ext = args.output.rsplit(".", 1)
+    except ValueError:
+        print("invalid image filename: %s" % args.output)
+        exit(255)
+
+    width, height = map(int, gre.groups())
+    image = Image.new("RGB", (width, height), (255, 255, 255))
+
+    mesh = Mesh(args.input)
+    xmin, xmax, ymin, ymax = 2**32, 0, 2**32, 0
+    for gon in mesh.polygons:
+        for x, y in gon:
+            if x < xmin: xmin = x
+            if x > xmax: xmax = x
+            if y < ymin: ymin = y
+            if y > ymax: ymax = y
+
+    def scale((x, y)):
+        return (
+            int(width * (x - xmin) / (xmax - xmin)),
+            int(height * (y - ymin) / (ymax - ymin))
+            )
+
+    mint, maxt = 2**32, 0
+    for f in mesh.types:
+        if f < mint: mint = f
+        if f > maxt: maxt = f
+
+    def cmap(f):
+        g = int(255 * (f - mint)/(maxt - mint))
+        return (g, g, g)
+
+    canvas = ImageDraw.Draw(image)
+
+    for gon, flavour in zip(mesh.polygons, mesh.types):
+        canvas.polygon(map(scale, gon), fill=cmap(flavour))
+
+    image.save(args.output, ext.upper())
+
