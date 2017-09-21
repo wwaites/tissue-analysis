@@ -7,7 +7,8 @@ setup(
     install_requires=['numpy', 'scipy'],
     entry_points={
         'console_scripts': [
-            'tstats = ta.cmd:main'
+            'tstats = ta.cmd:main',
+            'eplot = ta.plt:main'
             ]
         }
     )

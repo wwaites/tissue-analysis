@@ -1,0 +1,13 @@
+#!/bin/sh
+
+name=`basename $1`
+db=$1/summary.db
+dbc=/tmp/summary.$$.db
+dataset=scaling
+
+mkdir -p /home/ww/shared/three-cells/$dataset/
+
+echo $processing $name
+cp $db $dbc
+echo "SELECT time, entropy  FROM meshfiles ORDER BY time;" | sqlite3 $dbc | sort -n | sed 's/|/ /' > /home/ww/shared/three-cells/$dataset/$name.entropy.dat
+rm $dbc
