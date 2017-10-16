@@ -1,4 +1,4 @@
-from ta.mesh import Mesh
+from ta.mesh import VtuMesh
 from ta.db import Database
 import os
 from os import path
@@ -12,7 +12,7 @@ from clusters import clusterstats
 log = logging.getLogger("tstats")
 
 def main():
-    parser = argparse.ArgumentParser(prog='clusters')
+    parser = argparse.ArgumentParser(prog='tstats')
     parser.add_argument('-d', dest='db', help='Database File')
     parser.add_argument('--meshstats', dest='meshstats', action='store_true')
     parser.add_argument('--clusterstats', dest='clusterstats', action='store_true')
@@ -30,7 +30,7 @@ def main():
             if fn.endswith(".vtu"):
                 filename = path.join(d, fn)
                 try:
-                    m = Mesh(filename)
+                    m = VtuMesh(filename)
                     if args.meshstats:
                         meshstats(db, m)
                     if args.clusterstats:
@@ -42,3 +42,13 @@ def main():
                     for s in traceback.format_exception(exc_type, exc_value, exc_traceback):
                         log.error(s)
                     db.conn.rollback()
+
+def entropy():
+    parser = argparse.ArgumentParser(prog='pentropy')
+    parser.add_argument('-n', dest='n', action='store_true')
+    parser.add_argument('-v', dest='vtufile', help='VTU file')
+    logging.basicConfig(
+        format='%(asctime)s %(levelname)s %(message)s',
+        level=logging.DEBUG
+    )
+    args = parser.parse_args()

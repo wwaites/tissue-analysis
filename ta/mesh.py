@@ -1,7 +1,10 @@
+import argparse, json
 from vtk import *
 from scipy.sparse import dok_matrix
 import numpy as np
+from math import sqrt, pi, cos
 from sys import argv, stdout
+from math import *
 import logging
 import re
 log = logging.getLogger("mesh")
@@ -28,6 +31,9 @@ def memoize(f):
     return property(m)
 
 class Mesh(object):
+    pass
+
+class VtuMesh(Mesh):
     def __init__(self, file_name):
         self.filename = file_name
         reader = vtkXMLUnstructuredGridReader()
@@ -36,7 +42,7 @@ class Mesh(object):
         self.ug = reader.GetOutput()
 
     def __str__(self):
-        return "Mesh(%s)" % repr(self.filename)
+        return "VtuMesh(%s)" % repr(self.filename)
 
     @memoize
     def shape(self):
@@ -146,6 +152,96 @@ class Mesh(object):
 
     def neighbours(self, i):
         return [j for (_, j) in self.adjacencies[i, :].keys()]
+
+class DictMesh(Mesh):
+    def __init__(self, data):
+        self.__dict__.update(data)
+        if isinstance(self.shape, list):
+            self.shape = tuple(self.shape)
+        if isinstance(self.adjacencies, list):
+            keys = self.adjacencies
+            self.adjacencies = dok_matrix(self.shape, dtype=bool)
+            for adj in keys: self.adjacencies[adj] = True
+
+def mklattice(n, m):
+    R = sqrt(2.0 / (3*sqrt(3)))
+    r = R*cos(pi/6)
+    def hexagon(x, y):
+        for angle in [0, pi/3, 2*pi/3, pi, 4*pi/3, 5*pi/3]:
+            yield (x + R + cos(angle)*R, y + sin(angle)*R)
+
+    def ident(i, j):
+        return j*n + i
+
+    lattice = {
+        "types": [],
+        "polygons": [],
+        "shape": (n*m,n*m),
+        "adjacencies": dok_matrix((n*m,n*m), dtype=bool)
+    }
+    for j in range(m):
+        for i in range(n):
+            lattice["types"].append(0)
+            xshift = 0 if j % 2 == 0 else 1.5*R
+            xoffset = i*(2*R + R) + xshift
+            yoffset = j*r + r
+            lattice["polygons"].append(list(hexagon(xoffset, yoffset)))
+
+            if j > 1:
+                lattice["adjacencies"][ident(i,j), ident(i, j-2)] = True
+
+            if i > 0:
+                if j > 0:
+                    lattice["adjacencies"][ident(i,j), ident(i-1, j-1)] = True
+                if j < m-1:
+                    lattice["adjacencies"][ident(i,j), ident(i-1, j+1)] = True
+
+            if i < n-1:
+                if j > 0:
+                    lattice["adjacencies"][ident(i,j), ident(i+1, j-1)] = True
+                if j < m-1:
+                    lattice["adjacencies"][ident(i,j), ident(i+1, j+1)] = True
+
+            if j < m-2:
+                lattice["adjacencies"][ident(i,j), ident(i, j+2)] = True
+
+    return DictMesh(lattice)
+
+def lattice():
+    parser = argparse.ArgumentParser(prog='plattice')  
+    parser.add_argument('-n', dest='n', default="4", type=int, help='lattice size')
+    parser.add_argument('-m', dest='m', default="16", type=int, help='lattice size')
+    parser.add_argument('-p', dest='pattern', default="checker", help='lattice pattern')
+
+    args = parser.parse_args()
+
+    lat = mklattice(args.n, args.m)
+    data = lat.__dict__
+    data["adjacencies"] = data["adjacencies"].keys()
+
+    if args.pattern == "stripes":
+        for i in range(len(lat.types)):
+            for k in range(3):
+                if (i/args.m) % 3 == k:
+                    lat.types[i] = k
+    elif args.pattern == "tstripes":
+        for i in range(len(lat.types)):
+            for k in range(3):
+                if (i/args.m/3) % 3 == k:
+                    lat.types[i] = k
+    elif args.pattern == "checker":
+        for i in range(len(lat.types)):
+            for k in range(3):
+                if (i/args.n) % 3 == k:
+                    lat.types[i] = k
+    elif args.pattern == "random":
+        from random import seed, choice
+        from time import time
+        seed(time())
+        for i in range(len(lat.types)):
+            lat.types[i] = choice([0,1,2])
+
+    print json.dumps(data)
 
 def meshstats(db, m):
     log.info("calculating mesh stats %s", m)

@@ -10,6 +10,7 @@ setup(
             'tstats = ta.cmd:main',
             'eplot = ta.plt:main',
             'pmesh = ta.plt:mesh',
+            'plattice = ta.mesh:lattice'
             ]
         }
     )
