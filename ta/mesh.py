@@ -31,7 +31,11 @@ def memoize(f):
     return property(m)
 
 class Mesh(object):
-    pass
+    def __len__(self):
+        return len(self.types)
+    def neighbours(self, i):
+        return [j for (_, j) in self.adjacencies[i, :].keys()]
+
 
 class VtuMesh(Mesh):
     def __init__(self, file_name):
@@ -150,9 +154,6 @@ class VtuMesh(Mesh):
                 dist.append(demo[i] * nstats[i,j])
         return -1 * sum(p * log(p, 2) for p in dist)
 
-    def neighbours(self, i):
-        return [j for (_, j) in self.adjacencies[i, :].keys()]
-
 class DictMesh(Mesh):
     def __init__(self, data):
         self.__dict__.update(data)
@@ -161,7 +162,7 @@ class DictMesh(Mesh):
         if isinstance(self.adjacencies, list):
             keys = self.adjacencies
             self.adjacencies = dok_matrix(self.shape, dtype=bool)
-            for adj in keys: self.adjacencies[adj] = True
+            for (i,j) in keys: self.adjacencies[i,j] = True
 
 def mklattice(n, m):
     R = sqrt(2.0 / (3*sqrt(3)))
@@ -179,6 +180,12 @@ def mklattice(n, m):
         "shape": (n*m,n*m),
         "adjacencies": dok_matrix((n*m,n*m), dtype=bool)
     }
+    def inbox(i):
+        return i >= 0 and i < n*m
+    def leftof(i, j):
+        return i % n >= j % n
+    def rightof(i, j):
+        return i % n <= j % n
     for j in range(m):
         for i in range(n):
             lattice["types"].append(0)
@@ -187,23 +194,28 @@ def mklattice(n, m):
             yoffset = j*r + r
             lattice["polygons"].append(list(hexagon(xoffset, yoffset)))
 
-            if j > 1:
-                lattice["adjacencies"][ident(i,j), ident(i, j-2)] = True
+            cid = ident(i,j)
 
-            if i > 0:
-                if j > 0:
-                    lattice["adjacencies"][ident(i,j), ident(i-1, j-1)] = True
-                if j < m-1:
-                    lattice["adjacencies"][ident(i,j), ident(i-1, j+1)] = True
+            nn  = cid - 2*n
+            ss  = cid + 2*n
 
-            if i < n-1:
-                if j > 0:
-                    lattice["adjacencies"][ident(i,j), ident(i+1, j-1)] = True
-                if j < m-1:
-                    lattice["adjacencies"][ident(i,j), ident(i+1, j+1)] = True
+            evenrow = j % 2 == 0
+            evencol = i % 2 == 0
+            if evenrow:
+                se = cid + n
+                nw = cid - n - 1
+            else:
+                se = cid + n + 1
+                nw = cid - n
+            sw = se - 1
+            ne = nw + 1
 
-            if j < m-2:
-                lattice["adjacencies"][ident(i,j), ident(i, j+2)] = True
+            if inbox(nn): lattice["adjacencies"][cid, nn] = True
+            if inbox(ne) and rightof(cid, ne): lattice["adjacencies"][cid, ne] = True
+            if inbox(se) and rightof(cid, se): lattice["adjacencies"][cid, se] = True
+            if inbox(ss): lattice["adjacencies"][cid, ss] = True
+            if inbox(sw) and leftof(cid, sw): lattice["adjacencies"][cid, sw] = True
+            if inbox(nw) and leftof(cid, nw): lattice["adjacencies"][cid, nw] = True
 
     return DictMesh(lattice)
 

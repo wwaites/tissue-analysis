@@ -47,6 +47,8 @@ def mesh():
                         help='input format, VTU or JSON')
     parser.add_argument('-o', dest='outline', action='store_true', default=False,
                         help='show cell outlines')
+    parser.add_argument('-i', dest='index', action='store_true', default=False,
+                        help='show cell indices')
     parser.add_argument('input', help='input file')
     parser.add_argument('output', help='output file')
 
@@ -64,6 +66,7 @@ def mesh():
 
     width, height = map(int, gre.groups())
     image = Image.new("RGB", (width, height), (255, 255, 255))
+
 
     if args.format.lower() == 'vtu':
         mesh = VtuMesh(args.input)
@@ -102,8 +105,18 @@ def mesh():
     kv = {}
     if args.outline:
         kv["outline"] = (0, 0, 0, 0)
-    for gon, flavour in zip(mesh.polygons, mesh.types):
+
+    def centroid(gon):
+        xs = [x[0] for x in gon]
+        ys = [y[1] for y in gon]
+        return (sum(xs)/len(gon), sum(ys)/len(gon))
+
+    for i in range(len(mesh)):
+        gon = mesh.polygons[i]
+        flavour = mesh.types[i]
         canvas.polygon(map(scale, gon), fill=cmap(flavour), **kv)
+        if args.index:
+            canvas.text(scale(centroid(gon)), str(i), (0,0,0))
 
     image.save(args.output, ext.upper())
 
