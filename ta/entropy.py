@@ -51,19 +51,9 @@ def main():
     parser.add_argument('-n', dest='number', default=2, type=int, help='Path entropy series term')
     parser.add_argument('-r', dest='relative', default=None,
                         help='reference for relative entropy')
-    parser.add_argument('input', help='input file')
+    parser.add_argument('input', nargs='*', help='input files')
 
     args = parser.parse_args()
-
-
-    if args.input.endswith('.vtu'):
-        mesh = VtuMesh(args.input)
-    else:
-        with open(args.input) as fp:
-            data = json.loads(fp.read())
-        mesh = DictMesh(data)
-
-    dist = distribution(mesh, paths(mesh, args.number))
 
     if args.relative is not None:
         if args.relative.endswith('.vtu'):
@@ -74,8 +64,19 @@ def main():
             rel = DictMesh(data)
         rdist = distribution(rel, paths(rel, args.number))
 
-        print relentropy(dist, rdist)
-    else:
-        print entropy(dist)
+    for infile in args.input:
+        if infile.endswith('.vtu'):
+            mesh = VtuMesh(args.input)
+        else:
+            with open(infile) as fp:
+                data = json.loads(fp.read())
+            mesh = DictMesh(data)
+
+            dist = distribution(mesh, paths(mesh, args.number))
+
+        if args.relative is not None:
+            print infile, relentropy(dist, rdist)
+        else:
+            print infile, entropy(dist)
 
 
