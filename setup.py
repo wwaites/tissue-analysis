@@ -2,7 +2,7 @@ from setuptools import setup
 
 setup(
     name='tissue-analysis',
-    version='1.1',
+    version='1.2',
     packages=['ta'],
     install_requires=['numpy', 'scipy', 'Pillow', 'pytess', 'xlrd'],
     entry_points={
