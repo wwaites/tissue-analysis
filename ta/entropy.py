@@ -66,13 +66,13 @@ def main():
 
     for infile in args.input:
         if infile.endswith('.vtu'):
-            mesh = VtuMesh(args.input)
+            mesh = VtuMesh(infile)
         else:
             with open(infile) as fp:
                 data = json.loads(fp.read())
             mesh = DictMesh(data)
 
-            dist = distribution(mesh, paths(mesh, args.number))
+        dist = distribution(mesh, paths(mesh, args.number))
 
         if args.relative is not None:
             print infile, relentropy(dist, rdist)

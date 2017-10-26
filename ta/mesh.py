@@ -69,6 +69,13 @@ class VtuMesh(Mesh):
                 tuples = [data.GetTuple(c) for c in
                           range(data.GetNumberOfTuples())]
                 return np.array(list(t for t, in tuples))
+        for i in range(celldata.GetNumberOfArrays()):
+            data = celldata.GetArray(i)
+            if data.GetName() == "Cell types":
+                tuples = [data.GetTuple(c) for c in
+                          range(data.GetNumberOfTuples())]
+                return np.array(list(t for t, in tuples))
+
         raise TissueGridException("No data about cell types")
 
     @memoize
