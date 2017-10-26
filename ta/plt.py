@@ -94,17 +94,17 @@ def mesh():
         if f < mint: mint = f
         if f > maxt: maxt = f
 
-    def cmap(f):
+    def cmap(f, i = False):
         if mint == maxt:
             g = 255
         else:
             g = int(255 * (f - mint)/(maxt - mint))
+        if i:
+            g = (g + 128) % 256
         return (g, g, g)
 
     canvas = ImageDraw.Draw(image)
     kv = {}
-    if args.outline:
-        kv["outline"] = (0, 0, 0, 0)
 
     def centroid(gon):
         xs = [x[0] for x in gon]
@@ -114,6 +114,8 @@ def mesh():
     for i in range(len(mesh)):
         gon = mesh.polygons[i]
         flavour = mesh.types[i]
+        if args.outline:
+            kv["outline"] = cmap(flavour, True)
         canvas.polygon(map(scale, gon), fill=cmap(flavour), **kv)
         if args.index:
             canvas.text(scale(centroid(gon)), str(i), (0,0,0))

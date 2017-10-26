@@ -220,7 +220,7 @@ def mklattice(n, m):
     return DictMesh(lattice)
 
 def lattice():
-    parser = argparse.ArgumentParser(prog='plattice')  
+    parser = argparse.ArgumentParser(prog='plattice')
     parser.add_argument('-n', dest='n', default="4", type=int, help='lattice size')
     parser.add_argument('-m', dest='m', default="16", type=int, help='lattice size')
     parser.add_argument('-p', dest='pattern', default="checker", help='lattice pattern')
