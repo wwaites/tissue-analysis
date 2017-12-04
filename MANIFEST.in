@@ -1,2 +1,3 @@
 include data/*.vtu
 include scripts/run_analysis
+include scripts/entropy_plot

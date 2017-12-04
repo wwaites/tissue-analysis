@@ -16,7 +16,7 @@ def paths(mesh, n):
                 yield p
 
     for c in range(len(mesh)):
-        for p in _paths(c, n-1, [c]):
+        for p in _paths(c, n, [c]):
             yield p
 
 def colour(mesh, path):
@@ -48,7 +48,7 @@ def relentropy(dist, rel):
 
 def main():
     parser = argparse.ArgumentParser(prog='pentropy')
-    parser.add_argument('-n', dest='number', default=2, type=int, help='Path entropy series term')
+    parser.add_argument('-n', dest='number', default=1, type=int, help='Path entropy series term')
     parser.add_argument('-r', dest='relative', default=None,
                         help='reference for relative entropy')
     parser.add_argument('input', nargs='*', help='input files')
