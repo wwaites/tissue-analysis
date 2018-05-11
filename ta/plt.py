@@ -4,6 +4,7 @@ from os import path, system
 from sys import exit
 from mesh import VtuMesh, DictMesh
 from PIL import Image, ImageDraw
+from ta.colours import colours
 import json
 import re
 
@@ -49,6 +50,8 @@ def mesh():
                         help='show cell outlines')
     parser.add_argument('-i', dest='index', action='store_true', default=False,
                         help='show cell indices')
+    parser.add_argument('-c', dest='colours', type=int, default=None,
+                        help='generate a colour plot')
     parser.add_argument('input', help='input file')
     parser.add_argument('output', help='output file')
 
@@ -94,14 +97,24 @@ def mesh():
         if f < mint: mint = f
         if f > maxt: maxt = f
 
-    def cmap(f, i = False):
-        if mint == maxt:
-            g = 255
-        else:
-            g = int(255 * (f - mint)/(maxt - mint))
-        if i:
-            g = (g + 128) % 256
+    def cmap(f):
+        c = int(args.colours * (f - mint)/(maxt - mint))
+        return colours[c]
+
+    def gmap(f):
+        g = int(255 * (f - mint)/(maxt - mint))
         return (g, g, g)
+
+    def onekind(f):
+        return (255, 255, 255)
+
+    def mute(c):
+        return tuple( ((c + 128) % 255) for c in cmap(f) )
+
+    if mint == maxt:
+        cmap = onekind
+    if args.colours is None:
+        cmap = gmap
 
     canvas = ImageDraw.Draw(image)
     kv = {}
@@ -115,10 +128,9 @@ def mesh():
         gon = mesh.polygons[i]
         flavour = mesh.types[i]
         if args.outline:
-            kv["outline"] = cmap(flavour, True)
+            kv["outline"] = mute(cmap(flavour))
         canvas.polygon(map(scale, gon), fill=cmap(flavour), **kv)
         if args.index:
             canvas.text(scale(centroid(gon)), str(i), (0,0,0))
 
     image.save(args.output, ext.upper())
-
